@@ -1,0 +1,139 @@
+services:
+  # FastAPI应用
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: faas_fastapi
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+# 数据库连接配置
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=postgre
+DB_USER=postgres
+
+# Redis 作为消息队列
+REDIS_URL=redis://redis:6380/0
+
+# HTTP 超时配置（15分钟）
+HTTP_TIMEOUT=900.0
+
+# 数据库连接池
+DB_POOL_MIN_SIZE=5
+DB_POOL_MAX_SIZE=20
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6380/0
+    ports:
+      - "6921:6921"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - faas_network
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 6921 --workers 4
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6380/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - faas_network
+    restart: unless-stopped
+    command: celery -A celery_app worker --loglevel=info --queues=coze_workflow,default --concurrency=2
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6380/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - faas_network
+    restart: unless-stopped
+    command: celery -A celery_app beat --loglevel=info
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5555:5555"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6380/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - faas_network
+    restart: unless-stopped
+    command: celery -A celery_app flower --port=5555
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6380:6380"
+    command: redis-server --port 6380
+    networks:
+      - faas_network
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:16.3
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    ports:
+      - "35432:5432"
+    networks:
+      - faas_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  faas_network:
+    driver: bridge
