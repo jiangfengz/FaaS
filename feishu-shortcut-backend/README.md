@@ -203,7 +203,7 @@ curl -X GET "http://localhost:6921/api/system/status"
 | DB_PORT | 数据库端口 | 5432 |
 | DB_NAME | 数据库名称 | postgre |
 | DB_USER | 数据库用户名 | postgres |
-| DB_PASSWORD | 数据库密码 | your_db_password |
+| DB_PASSWORD | 数据库密码 | your_db_password（请在 .env 中自行设置） |
 | REDIS_URL | Redis连接URL | redis://redis:6380/0 |
 | LOG_LEVEL | 日志级别 | INFO |
 | CACHE_TTL | 缓存过期时间(秒) | 3600 |
