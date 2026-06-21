@@ -1,8 +1,8 @@
 import { basekit, FieldType, field, FieldComponent, FieldCode, NumberFormatter, AuthorizationType } from '@lark-opdev/block-basekit-server-api';
 const { t } = field;
 
-// 添加API域名白名单 - 更新为云服务器地址
-basekit.addDomainList(['119.45.114.53:6921', 'localhost:6921', 'api.example.com']);
+// 添加API域名白名单 - 请替换为你自己的后端地址
+basekit.addDomainList(['your-backend-host:6921', 'localhost:6921', 'api.example.com']);
 
 basekit.addField({
   // 定义捷径的i18n语言资源
@@ -199,8 +199,8 @@ basekit.addField({
         }
       });
       
-      // 直接调用云服务器后端API - 使用正确的端点
-      const apiUrl = 'http://119.45.114.53:6921/api/chat'; // 云服务器后端服务地址，使用新的API端点
+      // 调用后端 API - 请替换为你自己的后端地址（示例）
+      const apiUrl = 'http://your-backend-host:6921/api/chat'; // 后端服务地址（示例占位，请改为实际地址）
       
       // 调用后端API
       const response = await context.fetch(apiUrl, {
